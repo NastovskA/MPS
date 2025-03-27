@@ -1,0 +1,64 @@
+# VLEZNA EQU F0h  ; I/O порта за влез
+# IZLEZNA EQU FF00h ; Мемориски мапиран уред за излез
+# ROM_ADRESA EQU 00FFh ; Локација во ROM меморијата OD KOJA CITAME
+#ORG 0000h ;ZA OD KOJA ADRESA DA POCNE PROGRAMATA
+
+
+START: JMP DOCNI_146  
+
+PRODOLZI:   
+ 	IN   VLEZNA
+    	MOV B,A  ; Чување на копија на податокот
+	MVI C, 08H  ; Поставување бројач за битови
+	MVI D, 00H  ; Бројач за единици
+
+
+
+BROJ_EDINICI:  
+	RRC      ; Ротирање на битовите надесно
+	JNC NAMALI  ; Ако нема carry, прескокни зголемување на D, NEMA DA IMAME 1 VO CARRY
+	INR D       ; Зголеми D ако има единица
+
+
+NAMALI: 
+	DCR C  ; Намали бројачот на битови
+	JNZ BROJ_EDINICI  ; Повтори додека не изброиме сите битови
+
+	MOV A,D  ; Пренеси број на единици во ACC
+	SUI 04H   ; Спореди со 4
+	JNC VTOR_KOMPLEMENT  ; Ако има повеќе од 4 единици, оди на втор комплемент
+
+MOV A,B         ; Врати го оригиналниот податок во акумулаторот (A)
+LDA ROM_ADRESA  ; Вчитување на податокот од ROM директно во A
+ADD B           ; Собирање на податокот од ROM со оригиналниот податок (B)
+JMP ZAPISI      ; Оди кон запишување на резултатот
+
+
+VTOR_KOMPLEMENT:
+
+	MOV A,B  ; Врати го оригиналниот податок
+	CMA       ; Прв комплемент
+	INR A     ; Втор комплемент
+
+
+ZAPISI: 
+	STA IZLEZNA  ; Запишување на резултатот
+	JMP DOCNI_146  ; Повторување на циклусот
+
+DOCNI_146:
+
+	MVI E, 146d  ; 146 x 1 ms = 146 ms
+DOCNI_1:
+
+	MVI D, 178d  ; 1/2.5 = 0.4 =>  so 14 takti 10 od JNZ i 4 od ;DCR gi mnozam 5.6, A POSLE TOA  1000 : 5.6= 178
+
+DOCNI:
+
+	DCR D
+	JNZ DOCNI
+	DCR E
+	JNZ DOCNI_1
+	JMP PRODOLZI
+	HLT
+
+#END
